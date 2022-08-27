@@ -120,6 +120,26 @@ For example, this would bind <kbd>ctrl</kbd> + <kbd>space</kbd> to accept the cu
 bindkey '^ ' autosuggest-accept
 ```
 
+### Wrapping
+
+In this version some event handlers can be wrapped like this:
+
+```sh
+tab () {
+    if [ "$ZSH_AUTOSUGGEST_POSTDISPLAY_CANDIDATE" ]
+    then
+        zle autosuggest-accept $ZSH_AUTOSUGGEST_POSTDISPLAY_CANDIDATE $@
+    else
+        echo "do other things..."
+    fi
+}
+
+zle -N tab
+
+bindkey '^I' tab
+```
+
+Variable `ZSH_AUTOSUGGEST_POSTDISPLAY_CANDIDATE` contains actual suggestion which can be modified and returned to event handler.
 
 ## Troubleshooting
 
