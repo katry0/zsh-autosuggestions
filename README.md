@@ -126,9 +126,9 @@ In this version some event handlers can be wrapped like this:
 
 ```sh
 tab () {
-    if [ "$ZSH_AUTOSUGGEST_POSTDISPLAY_CANDIDATE" ]
+    if [ "${ZSH_AUTOSUGGEST_POSTDISPLAY_CANDIDATE}" ]
     then
-        zle autosuggest-accept $ZSH_AUTOSUGGEST_POSTDISPLAY_CANDIDATE $@
+        zle autosuggest-accept ${ZSH_AUTOSUGGEST_POSTDISPLAY_CANDIDATE} $@
     else
         echo "do other things..."
     fi
