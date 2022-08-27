@@ -58,12 +58,14 @@ _zsh_autosuggest_modify() {
 	# Don't fetch a new suggestion if there's more input to be read immediately
 	if (( $PENDING > 0 || $KEYS_QUEUED_COUNT > 0 )); then
 		POSTDISPLAY="$orig_postdisplay"
+		export ZSH_AUTOSUGGEST_POSTDISPLAY_CANDIDATE=$POSTDISPLAY
 		return $retval
 	fi
 
 	# Optimize if manually typing in the suggestion or if buffer hasn't changed
 	if [[ "$BUFFER" = "$orig_buffer"* && "$orig_postdisplay" = "${BUFFER:$#orig_buffer}"* ]]; then
 		POSTDISPLAY="${orig_postdisplay:$(($#BUFFER - $#orig_buffer))}"
+		export ZSH_AUTOSUGGEST_POSTDISPLAY_CANDIDATE=$POSTDISPLAY
 		return $retval
 	fi
 
@@ -101,8 +103,10 @@ _zsh_autosuggest_suggest() {
 
 	if [[ -n "$suggestion" ]] && (( $#BUFFER )); then
 		POSTDISPLAY="${suggestion#$BUFFER}"
+		export ZSH_AUTOSUGGEST_POSTDISPLAY_CANDIDATE=$POSTDISPLAY
 	else
 		unset POSTDISPLAY
+		unset ZSH_AUTOSUGGEST_POSTDISPLAY_CANDIDATE
 	fi
 }
 
@@ -110,16 +114,22 @@ _zsh_autosuggest_suggest() {
 _zsh_autosuggest_accept() {
 	local -i retval max_cursor_pos=$#BUFFER
 
+	nv="$@"
+	if [[ "${1}" != "" ]]
+	then
+		POSTDISPLAY=${1}
+		nv=$(echo "$@" | cut -c $((${#1}+1))-)
+	fi
+
 	# When vicmd keymap is active, the cursor can't move all the way
 	# to the end of the buffer
 	if [[ "$KEYMAP" = "vicmd" ]]; then
 		max_cursor_pos=$((max_cursor_pos - 1))
 	fi
-
 	# If we're not in a valid state to accept a suggestion, just run the
 	# original widget and bail out
 	if (( $CURSOR != $max_cursor_pos || !$#POSTDISPLAY )); then
-		_zsh_autosuggest_invoke_original_widget $@
+		_zsh_autosuggest_invoke_original_widget ${nv}
 		return
 	fi
 
@@ -129,7 +139,7 @@ _zsh_autosuggest_accept() {
 
 	# Remove the suggestion
 	unset POSTDISPLAY
-
+	unset ZSH_AUTOSUGGEST_POSTDISPLAY_CANDIDATE
 	# Run the original widget before manually moving the cursor so that the
 	# cursor movement doesn't make the widget do something unexpected
 	_zsh_autosuggest_invoke_original_widget $@
@@ -146,12 +156,13 @@ _zsh_autosuggest_accept() {
 }
 
 # Accept the entire suggestion and execute it
-_zsh_autosuggest_execute() {
+;_zsh_autosuggest_execute() {
 	# Add the suggestion to the buffer
 	BUFFER="$BUFFER$POSTDISPLAY"
 
 	# Remove the suggestion
 	unset POSTDISPLAY
+	unset ZSH_AUTOSUGGEST_POSTDISPLAY_CANDIDATE
 
 	# Call the original `accept-line` to handle syntax highlighting or
 	# other potential custom behavior
@@ -182,6 +193,7 @@ _zsh_autosuggest_partial_accept() {
 	if (( $cursor_loc > $#original_buffer )); then
 		# Set POSTDISPLAY to text right of the cursor
 		POSTDISPLAY="${BUFFER[$(($cursor_loc + 1)),$#BUFFER]}"
+		export ZSH_AUTOSUGGEST_POSTDISPLAY_CANDIDATE=$POSTDISPLAY
 
 		# Clip the buffer at the cursor
 		BUFFER="${BUFFER[1,$cursor_loc]}"
